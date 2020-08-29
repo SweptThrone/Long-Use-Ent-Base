@@ -2,7 +2,7 @@ AddCSLuaFile()
 
 ENT.Type = "anim"
 --ENT.Base = "base_gmodentity"
-ENT.PrintName = "Long-Use Usable"
+ENT.PrintName = "Progress Usable"
 ENT.Author = "SweptThrone"
 ENT.Spawnable = true
 ENT.AdminSpawnable = false
@@ -37,8 +37,8 @@ if SERVER then
 		if phys:IsValid() then phys:Wake() end
 	end
 
-	function ENT:Use( act, ply, typ )
-		if --[[self.SingleUser and]] self:GetUser() then return end
+	function ENT:Use( ply, act, typ )
+		if --[[self.SingleUser and]] IsValid( self:GetUser() ) and self:GetUser() != ply then return end
 
 		self:SetUser( ply )
 		if !ply:KeyDownLast( IN_USE ) then

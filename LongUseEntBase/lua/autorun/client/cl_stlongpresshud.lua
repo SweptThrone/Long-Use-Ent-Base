@@ -81,14 +81,14 @@ hook.Add( "HUDPaint", "DrawUsablePrompt", function()
     local useable = LocalPlayer():GetUseEntity()
 
     if useable.IsProgressUsable and useable:IsProgressUsable() then
-        if useable.DrawProgress and LocalPlayer():KeyDown( IN_USE ) and useable:GetProgress() != -1 then
+        if useable:GetDrawProgress() and LocalPlayer():KeyDown( IN_USE ) and useable:GetProgress() != -1 then
             surface.SetDrawColor( 255, 255, 255 )
             draw.NoTexture()
 
             draw.Arc( ScrW() / 2, ScrH() / 2, 32, 10, 90, ( ( useable:GetProgress() / 100 ) * 360 ) + 90, 3, Color( 255, 255, 255 ) )
         end
 
-        if useable.DrawKeyPrompt then
+        if useable:GetDrawKeyPrompt() then
             surface.SetDrawColor( 255, 255, 255, 255 )
             surface.SetMaterial( EMPTY_KEY )
             surface.DrawTexturedRect( ScrW() / 2 - 16, ScrH() / 2 - 16, 32, 32 )

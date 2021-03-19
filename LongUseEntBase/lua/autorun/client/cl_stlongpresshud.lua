@@ -71,7 +71,7 @@ function surface.PrecacheArc(cx,cy,radius,thickness,startang,endang,roughness)
 	return triarc
 end
 
-function surface.DrawArc(arc) //Draw a premade arc.
+function surface.DrawArc(arc) --Draw a premade arc.
 	for k,v in ipairs(arc) do
 		surface.DrawPoly(v)
 	end
@@ -81,11 +81,11 @@ hook.Add( "HUDPaint", "DrawUsablePrompt", function()
     local useable = LocalPlayer():GetUseEntity()
 
     if useable.IsProgressUsable and useable:IsProgressUsable() then
-        if useable:GetDrawProgress() and LocalPlayer():KeyDown( IN_USE ) and useable:GetProgress() != -1 then
+        if useable:GetDrawProgress() and useable:GetUser() == LocalPlayer() and LocalPlayer():KeyDown( IN_USE ) and CurTime() < useable:GetEndTime() then
             surface.SetDrawColor( 255, 255, 255 )
             draw.NoTexture()
 
-            draw.Arc( ScrW() / 2, ScrH() / 2, 32, 10, 90, ( ( useable:GetProgress() / 100 ) * 360 ) + 90, 3, Color( 255, 255, 255 ) )
+            draw.Arc( ScrW() / 2, ScrH() / 2, 32, 10, 90, ( ( 1 - math.abs( ( useable:GetEndTime() - CurTime() ) / useable.TimeToUse ) ) * 360 ) + 90, 3, Color( 255, 255, 255 ) ) --thanks datae
         end
 
         if useable:GetDrawKeyPrompt() then

@@ -8,50 +8,34 @@ ENT.AdminSpawnable = false
 ENT.AutomaticFrameAdvance = true
 ENT.ProgPerTick = 0 -- used internally, this should not be changed
 ENT.TimeToUse = ENT.TimeToUse or 1.5 -- the user can edit this
-ENT.LastProg = -1 -- used internally, this should not be changed
+ENT.PartialUse = 1 -- used internally, this should not be changed
 --ENT.DrawKeyPrompt = true -- deprecated, use self:SetDrawKeyPrompt( b )
 --ENT.DrawProgress = true -- deprecated, use self:SetProgress( b )
 
 ENT.PartialUses = {}
 --[[ this is an example of a filled-in PartialUses table
-	if your TimeToUse is too short,
-	some intermittent steps may not get called.
-	for example, this very table on a TimeToUse = 0.5 or even 1
-	only calls 0, 60, and 99.
-	i'm sure if you did any amount of research,
-	you could get this down to a science.
-	TimeToUse = 1.5 (default) works fine with this table.
+	 make sure they're in chronological order, or they may not be called
+	 prog is the percentage used the entity is when func should be called
+	 ent is the entity, you can use ent:GetUser() for the player using the entity
 
 ENT.PartialUses = {
-	[0] = function( ent )
-		ent:EmitSound( "buttons/blip1.wav", 75, 38 )
-	end,
-	[20] = function( ent )
-		ent:EmitSound( "buttons/blip1.wav", 75, 50 )
-	end,
-	[40] = function( ent )
-		ent:EmitSound( "buttons/blip1.wav", 75, 63 )
-	end,
-	[60] = function( ent )
-		ent:EmitSound( "buttons/blip1.wav", 75, 75 )
-	end,
-	[80] = function( ent )
-		ent:EmitSound( "buttons/blip1.wav", 75, 88 )
-	end,
-	[99] = function( ent )
-		ent:EmitSound( "buttons/blip1.wav", 75, 99 )
-	end
+	{ prog = 1, func = function( ent ) ent:EmitSound( "buttons/blip1.wav", 75, 38 ) end },
+	{ prog = 20, func = function( ent ) ent:EmitSound( "buttons/blip1.wav", 75, 50 ) end },
+	{ prog = 40, func = function( ent ) ent:EmitSound( "buttons/blip1.wav", 75, 63 ) end },
+	{ prog = 60, func = function( ent ) ent:EmitSound( "buttons/blip1.wav", 75, 75 ) end },
+	{ prog = 80, func = function( ent ) ent:EmitSound( "buttons/blip1.wav", 75, 88 ) end },
+	{ prog = 99, func = function( ent ) ent:EmitSound( "buttons/blip1.wav", 75, 100 ) end }
 }
 ]]
 
 function ENT:SetupDataTables()
-	self:NetworkVar( "Float", 0, "Progress" )
+	self:NetworkVar( "Float", 0, "EndTime" )
 	self:NetworkVar( "Entity", 0, "User" )
 	self:NetworkVar( "Bool", 0, "DrawKeyPrompt" )
 	self:NetworkVar( "Bool", 1, "DrawProgress" )
 
 	if SERVER then
-		self:SetProgress( -1.0 )
+		self:SetEndTime( 0 )
 		self:SetDrawKeyPrompt( true )
 		self:SetDrawProgress( true )
 		self.ProgPerTick = 1 / ( self.TimeToUse * ( 1 / FrameTime() ) / 100 )
@@ -74,29 +58,23 @@ if SERVER then
 	end
 
 	function ENT:Use( ply, act, typ )
+
 		if IsValid( self:GetUser() ) and self:GetUser() != ply then return end
+
+        if ply:KeyDownLast( IN_USE ) and !IsValid( self:GetUser() ) then return end
 
 		self:SetUser( ply )
 		if !ply:KeyDownLast( IN_USE ) then
-			self:SetProgress( 0 )
+			self:SetEndTime( 0 )
 			self:OnUseStart( ply )
-			self.starttime = CurTime()
-		end
-		if ply:KeyDownLast( IN_USE ) then
-			if self:GetProgress() == -1 then
-				return 
-			end
-			self:SetProgress( self:GetProgress() + self.ProgPerTick )
+			self:SetEndTime( CurTime() + self.TimeToUse )
 		end
 
-		if self:GetProgress() >= 100 then
-			self:OnUseFinish( ply )
-			self:SetProgress( -1 )
+		if CurTime() >= self:GetEndTime() and IsValid( self:GetUser() ) and self:GetEndTime() != 0 then
+			self:OnUseFinish( self:GetUser() )
+			self:SetEndTime( 0 )
+			self.PartialUse = 1
 			self:SetUser( nil )
-		end
-
-		if self.PartialUses[ self:GetProgress() ] != nil then
-			self.PartialUses[ self:GetProgress() ]( self )
 		end
 
 	end
@@ -113,38 +91,13 @@ if SERVER then
 		self:EmitSound( "buttons/button10.wav" )
 	end
 
-	function ENT:OnRemove()
-		
-	end
+	function ENT:CancelUse( func )
+        func = func or false
 
-	function ENT:Think()
-
-		if IsValid( self:GetUser() ) then
-            if !IsValid( self:GetUser():GetUseEntity() ) and self:GetUser():GetUseEntity() != self then
-                self:SetUser( nil )
-                self:SetProgress( -1 )
-            end
-        end
-
-		if self:GetProgress() == self.LastProg and self:GetProgress() != -1 then
-			self:OnUseCancel( self:GetUser() )
-            self:SetUser( nil )
-            self:SetProgress( -1 )
-		end
-
-		self.LastProg = self:GetProgress()
-
-		--[[
-			usually you'd just use CurTime() here,
-			but on 66-tick servers, it's extremely unreliable.
-			sometimes it will cancel using even if you're holding it.
-			this is a bit of a fix, but it runs this entity
-			at 33-tick i think...
-		]]--
-		self:NextThink( CurTime() + 0.03 )
-
-		return true
-
+		self:SetEndTime( 0 )
+        self.PartialUse = 1
+        if func then self:OnUseCancel( self:GetUser() ) end
+        self:SetUser( nil )
 	end
 
 end
@@ -155,4 +108,25 @@ if CLIENT then
 		self:DrawModel()
 	end
 	
+end
+
+function ENT:Think()
+
+	if IsValid( self:GetUser() ) then
+		if ( self:GetUser():GetUseEntity() != self or !self:GetUser():KeyDown( IN_USE ) ) and self:GetEndTime() != 0 then
+			self:SetUser( nil )
+			self:SetEndTime( 0 )
+			self.PartialUse = 1
+			if SERVER then self:OnUseCancel( self:GetUser() ) end
+		end
+
+		if self.PartialUses[ self.PartialUse ] != nil and CurTime() >= ( self:GetEndTime() - self.TimeToUse ) + ( self.PartialUses[ self.PartialUse ].prog / 100 ) *  self.TimeToUse and  self:GetEndTime() != 0 then
+			self.PartialUses[ self.PartialUse ].func( self )
+			self.PartialUse = self.PartialUse + 1
+		end
+	end
+
+	self:NextThink( CurTime() )
+
+	return true
 end

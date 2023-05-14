@@ -1,6 +1,7 @@
 AddCSLuaFile()
 
 ENT.Type = "anim"
+ENT.Base = "base_anim"
 ENT.PrintName = "Progress Usable"
 ENT.Author = "SweptThrone"
 ENT.Spawnable = true

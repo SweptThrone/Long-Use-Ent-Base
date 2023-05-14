@@ -85,7 +85,9 @@ hook.Add( "HUDPaint", "DrawUsablePrompt", function()
             surface.SetDrawColor( 255, 255, 255 )
             draw.NoTexture()
 
-            draw.Arc( ScrW() / 2, ScrH() / 2, 32, 10, 90, ( ( 1 - math.abs( ( useable:GetEndTime() - CurTime() ) / useable.TimeToUse ) ) * 360 ) + 90, 3, Color( 255, 255, 255 ) ) --thanks datae
+			surface.DrawLine( ScrW() / 2, ScrH() / 2 - 32, ScrW() / 2, ScrH() / 2 - 23 ) -- without this, the top of the ring looks jittery and dumb.  why?  who knows
+
+            draw.Arc( ScrW() / 2, ScrH() / 2, 32, 10, -( ( ( 1 - math.abs( ( useable:GetEndTime() - CurTime() ) / useable.TimeToUse ) ) * 360 ) - 90 ), 90, 3, Color( 255, 255, 255 ) ) --thanks datae
         end
 
         if useable:GetDrawKeyPrompt() then
